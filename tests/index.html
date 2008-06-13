@@ -1,8 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<script src="http://www.google.com/jsapi"></script>
+	<script>
+	  // Load prototype + scriptaculous
+	  google.load("prototype", "1.6");
+	  google.load("scriptaculous", "1.8.1");
+	</script>
+</head>
+<body>
+
+<style type="text/css">
+
+div#droppable_container{ 
+		margin-bottom: 30px;  
+  	height:240px; 
+  	width: 500px; 
+  	background: black;
+  	padding: 10px;
+	}  
+
+div#droppable_demo{ 
+	  width:160px; 
+	  height:120px; 
+		font-size: 15px;
+	  background:white; 
+	  border:5px solid gray; 
+	  text-align:center;
+	  float: right;
+	}
+
+.draggable {
+		background: yellowgreen;
+		margin: 5px;
+		border: 3px solid green;
+		width: 100px; /*!important;*/
+		height: 100px; /*!important;*/
+		cursor: move;
+		font-size: 15px;
+		float: left;
+	}
+
+.spaceHolder {
+	background: orange;
+	margin: 5px;
+	border: 3px solid orangered;
+	width: 100px;
+	height: 100px;
+	font-size: 15px;
+	float: left;
+}
+
+div#droppable_demo.hover { 
+		border:5px dashed orange; 
+		background:lightgray; }
+
+#dragContainer {
+		background: yellow;
+		border:5px solid black; 
+		float: left;
+		width: 60%;
+		height: 120px;
+		overflow: auto;  /*This is where the weirdness happens*/
+		position: relative;
+}
+
+h3 {
+	color: white;
+	float: left;
+}
+
+</style>
+
+
+<div id="droppable_container">
+
+	<div id="dragContainer">
+		<div class="draggable" id="draggable_demo">
+			DRAG ME!!!
+		</div>
+		<!-- space holders added to create overflow -->
+		<div class="spaceHolder">
+			Space Holder
+		</div>
+		<div class="spaceHolder">
+			Space Holder
+		</div>
+		<div class="spaceHolder">
+			Space Holder
+		</div>
+	</div>
+
+  <div id="droppable_demo">
+    Drop here!
+  </div>
+
+<h3>To reproduce this bug, in ie7 or lower scroll the yellow div#droppable_container</h3>
+
+</div>
+
+
+
+<script type="text/javascript">
+  new Draggable('draggable_demo', { 
+    revert: true,
+		//ghosting: true // this is needed to avoid the craziness of the overflowed div's scroll bars
+		superghosting: true
+  });
+
+  Droppables.add('droppable_demo', { 
+    accept: 'draggable',
+    hoverclass: 'hover',
+    onDrop: function() { $('droppable_demo').highlight(); }
+  });
+
+// These changes have been made to dragdrop.js
+// Index: src/dragdrop.js
+// ===================================================================
+// --- src/dragdrop.js	(revision 8189)
+// +++ src/dragdrop.js	(working copy)
+// @@ -405,7 +405,7 @@
+//      if(this.options.ghosting) {
+//        if (!this.element._originallyAbsolute)
+//          Position.relativize(this.element);
+// -      delete this.element._originallyAbsolute;
+// +      this.element._originallyAbsolute = null;
+//        Element.remove(this._clone);
+//        this._clone = null;
+//      }
+
+
 //  DragDropExtra Scriptaculous Enhancement, version 0.2
 //  (c) 2007-2008 Christopher Williams, Iterative Designs
 //
-// v0.3 release
-//	  - Fixed bug found by Phillip Sauerbeck psauerbeck@gmail. Tests added based on Phillip's efforts.
 // v0.2 release
 //		- Minor bug fix for the releasing of objects after they have been dropped, prevents memory leak.
 // v0.1 release
@@ -39,42 +169,41 @@ Draggable.prototype.startDrag = function(event) {
 
 	
     if(this.options.superghosting) {
-			Position.prepare();
-			var pointer = [Event.pointerX(event), Event.pointerY(event)];
-			body = document.getElementsByTagName("body")[0];
-			me = this.element;
-			this._clone = me.cloneNode(true);
-
-			me.parentNode.insertBefore(this._clone, me);
-			me.id = "clone_"+me.id;
-			me.hide();
-
-			Position.absolutize(me);
-			me.parentNode.removeChild(me);
-			body.appendChild(me);
-			//Retain height and width of object only if it has been nulled out.  -v0.3 Fix
-			if (me.style.width == "0px" || me.style.height == "0px")	{
-				me.style.width=Element.getWidth(this._clone)+"px";
-				me.style.height=Element.getHeight(this._clone)+"px";
-			}
-
-			//overloading in order to reduce repeated code weight.
-			this.originalScrollTop = (Element.getHeight(this._clone)/2);
-
-			this.draw(pointer);
-			me.show();
+	    Position.prepare();
+	    var pointer = [Event.pointerX(event), Event.pointerY(event)];
+		body = document.getElementsByTagName("body")[0];
+		me = this.element;
+		this._clone = me.cloneNode(true);
+		
+	    me.parentNode.insertBefore(this._clone, me);
+		me.id = "clone_"+me.id;
+		me.hide();
+		
+	    Position.absolutize(me);
+		me.parentNode.removeChild(me);
+		body.appendChild(me);		// 
+		//Retain height and width of object only if it has been nulled out.
+		if (me.style.width == "0px" || me.style.height == "0px")	{
+			me.style.width=Element.getWidth(this._clone)+"px";
+			me.style.height=Element.getHeight(this._clone)+"px";
 		}
+		//overloading in order to reduce repeated code weight.
+		this.originalScrollTop = (Element.getHeight(this._clone)/2);
+		
+	    this.draw(pointer);
+		me.show();
+	}
 
-		if(this.options.scroll) {
-		  if (this.options.scroll == window) {
-		    var where = this._getWindowScroll(this.options.scroll);
-		    this.originalScrollLeft = where.left;
-		    this.originalScrollTop = where.top;
-		  } else {
-		    this.originalScrollLeft = this.options.scroll.scrollLeft;
-		    this.originalScrollTop = this.options.scroll.scrollTop;
-		  }
-		}
+   if(this.options.scroll) {
+      if (this.options.scroll == window) {
+        var where = this._getWindowScroll(this.options.scroll);
+        this.originalScrollLeft = where.left;
+        this.originalScrollTop = where.top;
+      } else {
+        this.originalScrollLeft = this.options.scroll.scrollLeft;
+        this.originalScrollTop = this.options.scroll.scrollTop;
+      }
+    }
     
     Draggables.notify('onStart', this, event);
         
@@ -204,3 +333,13 @@ Draggable.prototype.finishDrag =  function(event, success) {
   Draggables.deactivate(this);
   Droppables.reset();
 }
+
+
+
+</script>
+
+	
+	
+</body>
+</html>
+
