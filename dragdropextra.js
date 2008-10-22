@@ -1,6 +1,9 @@
-//  DragDropExtra Scriptaculous Enhancement, version 0.2
+//  DragDropExtra Scriptaculous Enhancement, version 0.5
 //  (c) 2007-2008 Christopher Williams, Iterative Designs
 //
+// v0.5 release
+//      - Fixed bug where 2nd drag on an element in IE would result in funny placement of the
+//        element. [shammond42]
 // v0.4 release
 //		- Fixed issue with dragging and dropping in IE7 due to an exception being thrown and not properly reseting in FinishDrag.
 // v0.3 release
@@ -20,7 +23,7 @@
 // (http://www.oriontransfer.co.nz, sammi@oriontransfer.co.nz) and available under 
 // a MIT-style license.
 
-Draggable.prototype.startDrag: function(event) {
+Draggable.prototype.startDrag = function(event) {
   this.dragging = true;
   if(!this.delta)
     this.delta = this.currentDelta();
@@ -44,7 +47,12 @@ Draggable.prototype.startDrag: function(event) {
 		body = document.getElementsByTagName("body")[0];
 		me = this.element;
 		this._clone = me.cloneNode(true);
-
+		if (Prototype.Browser.IE) {
+ 			// Clear event handing from the clone
+			// Solves the second drag issue in IE
+			this._clone.clearAttributes();
+			this._clone.mergeAttributes(me.cloneNode(false));
+		}
 		me.parentNode.insertBefore(this._clone, me);
 		me.id = "clone_"+me.id;
 		me.hide();
@@ -133,7 +141,7 @@ Draggable.prototype.draw = function(point) {
     if(style.visibility=="hidden") style.visibility = ""; // fix gecko rendering
 }
 
-Draggables.prototype.initDrag: function(event) {
+Draggable.prototype.initDrag = function(event) {
   if(!Object.isUndefined(Draggable._dragging[this.element]) &&
     Draggable._dragging[this.element]) return;
   if(Event.isLeftClick(event)) {    
@@ -155,7 +163,7 @@ Draggables.prototype.initDrag: function(event) {
   }
 }
 
-Droppables.prototype.isAffected = function(point, element, drop) {
+Droppables.isAffected = function(point, element, drop) {
 	Position.prepare();
 	positioned_within = Position.withinIncludingScrolloffsets(drop.element, point[0], point[1])
 	return (
@@ -169,7 +177,7 @@ Droppables.prototype.isAffected = function(point, element, drop) {
 
 }
 
-Draggable.prototype.finishDrag: function(event, success) {
+Draggable.prototype.finishDrag = function(event, success) {
   this.dragging = false;
   
   if(this.options.quiet){
@@ -223,4 +231,3 @@ Draggable.prototype.finishDrag: function(event, success) {
   Draggables.deactivate(this);
   Droppables.reset();
 }
-
